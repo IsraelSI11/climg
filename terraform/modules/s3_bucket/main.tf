@@ -30,3 +30,19 @@ resource "aws_s3_bucket_policy" "public_read" {
 
   depends_on = [aws_s3_bucket_public_access_block.this]
 }
+
+resource "aws_s3_bucket_lifecycle_configuration" "this" {
+  count  = var.expiration_days > 0 ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    id     = "expire-objects"
+    status = "Enabled"
+
+    filter {} # applies to every object in the bucket
+
+    expiration {
+      days = var.expiration_days
+    }
+  }
+}

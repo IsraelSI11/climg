@@ -14,3 +14,9 @@ variable "public_read" {
   type        = bool
   default     = false
 }
+
+variable "expiration_days" {
+  description = "If greater than 0, objects are automatically deleted after this many days. 0 disables expiration."
+  type        = number
+  default     = 0
+}
