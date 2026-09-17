@@ -3,6 +3,9 @@
 *.exe
 *.test
 
+# Lambda build artifacts (produced by lambda/**/build.sh)
+lambda/**/build/
+
 # Terraform
 **/.terraform/
 *.tfstate
