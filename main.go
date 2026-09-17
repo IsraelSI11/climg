@@ -1,6 +1,5 @@
 /*
 Copyright © 2026 Israel
-
 */
 package main
 
