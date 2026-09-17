@@ -10,14 +10,18 @@
 
 `climg` uploads images to an S3 bucket, where a Lambda function automatically converts them to WebP and republishes them on a second, public bucket. The CLI hands you back the final public URL immediately, so you can drop it straight into a website — no manual optimization step, no separate CDN setup.
 
-```
-climg upload photo.jpg
-      │
-      ▼
-S3 (raw bucket)  ──(ObjectCreated event)──▶  Lambda (Go)
-                                                │ decode → cwebp → re-encode
-                                                ▼
-                                        S3 (public bucket)  +  DynamoDB (metadata)
+```mermaid
+flowchart TD
+    CLI(["climg upload photo.jpg"])
+    Raw[("S3 raw bucket")]
+    Lambda{{"Lambda (Go)<br/>decode → cwebp → re-encode"}}
+    Processed[("S3 processed bucket<br/>(public)")]
+    Dynamo[("DynamoDB<br/>(metadata)")]
+
+    CLI -- PutObject --> Raw
+    Raw -- ObjectCreated event --> Lambda
+    Lambda --> Processed
+    Lambda --> Dynamo
 ```
 
 Everything runs serverless on AWS and is sized to stay within the [AWS Free Tier](https://aws.amazon.com/free/).
