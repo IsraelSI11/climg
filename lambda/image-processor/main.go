@@ -19,20 +19,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-)
 
-// imageRecord is the item written to DynamoDB once an image has been
-// converted to WebP. image_id is derived from the raw object's file name
-// (without extension), so the CLI must upload originals as <uuid>.<ext>.
-type imageRecord struct {
-	ImageID         string `dynamodbav:"image_id"`
-	RawBucket       string `dynamodbav:"raw_bucket"`
-	RawKey          string `dynamodbav:"raw_key"`
-	ProcessedBucket string `dynamodbav:"processed_bucket"`
-	ProcessedKey    string `dynamodbav:"processed_key"`
-	Status          string `dynamodbav:"status"`
-	CreatedAt       string `dynamodbav:"created_at"`
-}
+	"github.com/IsraelSI11/climg/internal/imagerecord"
+)
 
 var (
 	s3Client        *s3.Client
@@ -88,7 +77,7 @@ func processRecord(ctx context.Context, record events.S3EventRecord) error {
 		return fmt.Errorf("uploading processed image: %w", err)
 	}
 
-	return saveMetadata(ctx, imageRecord{
+	return saveMetadata(ctx, imagerecord.Record{
 		ImageID:         imageID,
 		RawBucket:       rawBucket,
 		RawKey:          rawKey,
@@ -143,7 +132,7 @@ func uploadObject(ctx context.Context, bucket, key, srcPath string) error {
 	return err
 }
 
-func saveMetadata(ctx context.Context, rec imageRecord) error {
+func saveMetadata(ctx context.Context, rec imagerecord.Record) error {
 	item, err := attributevalue.MarshalMap(rec)
 	if err != nil {
 		return err

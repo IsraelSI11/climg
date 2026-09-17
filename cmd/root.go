@@ -33,13 +33,19 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	rootCmd.PersistentFlags().String("region", envOrDefault("CLIMG_REGION", envOrDefault("AWS_REGION", "us-east-1")), "AWS region")
+	rootCmd.PersistentFlags().String("raw-bucket", os.Getenv("CLIMG_RAW_BUCKET"), "S3 bucket where originals are uploaded")
+	rootCmd.PersistentFlags().String("processed-bucket", os.Getenv("CLIMG_PROCESSED_BUCKET"), "S3 bucket serving optimized WebP images")
+	rootCmd.PersistentFlags().String("table", os.Getenv("CLIMG_TABLE"), "DynamoDB table storing image metadata")
+	rootCmd.PersistentFlags().Bool("json", false, "Print machine-readable JSON instead of human-readable text")
+}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.climg.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+// envOrDefault lets every flag above fall back to an environment variable
+// before its hardcoded default, so climg can run unattended (CI, agents)
+// without repeating --region/--raw-bucket/etc. on every invocation.
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
