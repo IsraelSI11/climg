@@ -8,3 +8,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "public_read" {
+  description = "Whether to allow public GetObject access to objects in this bucket"
+  type        = bool
+  default     = false
+}
