@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+
+	"github.com/IsraelSI11/climg/internal/imagerecord"
 )
 
 var uploadCmd = &cobra.Command{
@@ -37,6 +39,8 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 }
 
+// supportedImageExts are the input formats cwebp can decode; anything else
+// found in a folder is silently skipped instead of erroring the batch.
 var supportedImageExts = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
@@ -60,6 +64,9 @@ type uploadResult struct {
 // of simultaneous connections to S3.
 const maxConcurrentUploads = 8
 
+// runUpload resolves the configured buckets/region, expands the given path
+// into one or more image files, uploads them concurrently, and prints one
+// result per file.
 func runUpload(cmd *cobra.Command, args []string) error {
 	target := args[0]
 
@@ -148,10 +155,14 @@ func collectImagePaths(target string) ([]string, error) {
 	return paths, nil
 }
 
+// isSupportedImage reports whether path's extension is one cwebp can decode.
 func isSupportedImage(path string) bool {
 	return supportedImageExts[strings.ToLower(filepath.Ext(path))]
 }
 
+// uploadOne uploads a single file to the raw bucket under a fresh UUID key
+// and returns its outcome as a value rather than an error, so one failed
+// file doesn't abort the rest of a batch upload.
 func uploadOne(ctx context.Context, client *s3.Client, rawBucket, processedBucket, region, path string) uploadResult {
 	result := uploadResult{Path: path}
 
@@ -185,10 +196,13 @@ func uploadOne(ctx context.Context, client *s3.Client, rawBucket, processedBucke
 	result.ImageID = imageID
 	result.RawKey = rawKey
 	result.Status = "processing"
-	result.URL = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s.webp", processedBucket, region, imageID)
+	result.URL = imagerecord.PublicURL(region, processedBucket, imageID+".webp")
 	return result
 }
 
+// printUploadResults prints every result -- one JSON array in --json mode,
+// or one tab-separated line per file otherwise -- and returns how many
+// uploads failed, so the caller can decide the process's exit code.
 func printUploadResults(results []uploadResult, asJSON bool) (failed int) {
 	if asJSON {
 		enc, _ := json.Marshal(results)

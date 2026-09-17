@@ -26,6 +26,9 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 }
 
+// runStatus looks up a single image_id in DynamoDB and prints what the
+// Lambda has recorded so far, or a "still processing" message if it
+// hasn't written the item yet.
 func runStatus(cmd *cobra.Command, args []string) error {
 	imageID := args[0]
 
@@ -45,6 +48,8 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	client := dynamodb.NewFromConfig(cfg)
 	out, err := client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(table),
+		// image_id is the table's partition key (see terraform/main.tf),
+		// so this is the whole key needed to fetch a single item.
 		Key: map[string]types.AttributeValue{
 			"image_id": &types.AttributeValueMemberS{Value: imageID},
 		},
@@ -53,6 +58,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("querying dynamodb: %w", err)
 	}
 
+	// GetItem returns a nil Item (not an error) when the key doesn't
+	// exist -- the expected case right after upload, before the Lambda
+	// has had a chance to run.
 	if out.Item == nil {
 		if asJSON {
 			fmt.Printf("{\"image_id\":%q,\"status\":\"processing\"}\n", imageID)
@@ -76,10 +84,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("ID:        %s\n", rec.ImageID)
-	fmt.Printf("Estado:    %s\n", rec.Status)
-	fmt.Printf("Original:  s3://%s/%s\n", rec.RawBucket, rec.RawKey)
-	fmt.Printf("Procesada: s3://%s/%s\n", rec.ProcessedBucket, rec.ProcessedKey)
-	fmt.Printf("Creado:    %s\n", rec.CreatedAt)
+	fmt.Printf("ID:       %s\n", rec.ImageID)
+	fmt.Printf("Estado:   %s\n", rec.Status)
+	fmt.Printf("Original: s3://%s/%s (privado)\n", rec.RawBucket, rec.RawKey)
+	fmt.Printf("URL:      %s\n", rec.URL)
+	fmt.Printf("Creado:   %s\n", rec.CreatedAt)
 	return nil
 }

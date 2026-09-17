@@ -25,6 +25,10 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 }
 
+// runList scans the whole DynamoDB table and prints every image record.
+// A Scan reads every item in the table regardless of filters, which is
+// fine at personal scale but is not how this would be done for a table
+// with real traffic.
 func runList(cmd *cobra.Command, args []string) error {
 	table, _ := cmd.Flags().GetString("table")
 	if table == "" {
@@ -67,7 +71,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, rec := range records {
-		fmt.Printf("%s\t%s\ts3://%s/%s\n", rec.ImageID, rec.Status, rec.ProcessedBucket, rec.ProcessedKey)
+		fmt.Printf("%s\t%s\t%s\n", rec.ImageID, rec.Status, rec.URL)
 	}
 	return nil
 }
